@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload with Progress Bar</title>
+    <style>
+        #progress-bar {
+            width: 100%;
+            background-color: #f3f3f3;
+        }
+
+        #progress {
+            width: 0%;
+            height: 30px;
+            background-color: #4caf50;
+        }
+    </style>
+</head>
+<body>
+    <h1>File Upload with Progress Bar</h1>
+    <form id="upload-form">
+        <input type="file" id="file" name="file" required>
+        <button type="submit">Upload</button>
+    </form>
+    <div id="progress-bar">
+        <div id="progress"></div>
+    </div>
+    <script>
+        const progressBar = document.getElementById('progress');
+        const socket = new WebSocket('ws://localhost:8082/progress');
+        let sessionId;
+
+        socket.onopen = function() {
+            sessionId = socket.protocol || Math.random().toString(36).substring(7);  // Generate a random session ID if the WebSocket protocol is not set
+        };
+
+        socket.onmessage = function(event) {
+            const progress = event.data;
+            progressBar.style.width = progress + '%';
+        };
+
+        socket.onclose = function(event) {
+            console.log('WebSocket is closed now.');
+        };
+
+        socket.onerror = function(error) {
+            console.error('WebSocket error observed:', error);
+        };
+
+        document.getElementById('upload-form').onsubmit = function(event) {
+            event.preventDefault();
+            const fileInput = document.getElementById('file');
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('sessionId', sessionId);
+
+            fetch('http://localhost:8082/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(data => console.log(data))
+            .catch(error => console.error('Error:', error));
+        };
+    </script>
+</body>
+</html>
